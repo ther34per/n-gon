@@ -153,7 +153,7 @@ const lore = {
                 lore.miriam.text("I'll unlock it with the console command.")
             },
             () => {
-                lore.unlockTesting();
+                lore.unlockTesting(true);
                 setTimeout(() => {
                     lore.miriam.text("Hey little bot! Just press 'T' to enter testing mode and 'U' to go to the next level.")
                 }, 1000);
