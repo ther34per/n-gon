@@ -558,14 +558,14 @@ const simulation = {
         }
     },
     nextGun() {
-        if (b.inventory.length > 1 && !tech.isGunCycle) {
+        if (b.inventory.length > 1 && !(tech.isGunCycle || tech.isGunChoice)) {
             b.inventoryGun++;
             if (b.inventoryGun > b.inventory.length - 1) b.inventoryGun = 0;
             simulation.switchGun();
         }
     },
     previousGun() {
-        if (b.inventory.length > 1 && !tech.isGunCycle) {
+        if (b.inventory.length > 1 && !(tech.isGunCycle || tech.isGunChoice)) {
             b.inventoryGun--;
             if (b.inventoryGun < 0) b.inventoryGun = b.inventory.length - 1;
             simulation.switchGun();
@@ -768,7 +768,7 @@ const simulation = {
         }
     },
     setupCamera() { //makes the camera not scroll after changing locations
-        // //only works if velocity is zero
+        // only works if velocity is zero
         m.pos.x = player.position.x;
         m.pos.y = playerBody.position.y - m.yOff;
         const scale = 0.8;
@@ -790,6 +790,20 @@ const simulation = {
         ctx.scale(simulation.zoom / simulation.edgeZoomOutSmooth, simulation.zoom / simulation.edgeZoomOutSmooth); //zoom in once centered
         ctx.translate(-canvas.width2 + m.transX, -canvas.height2 + m.transY); //translate
         // ctx.translate(-canvas.width2 + m.transX - player.velocity.x, -canvas.height2 + m.transY + player.velocity.y); //translate
+        //calculate in game mouse position by undoing the zoom and translations
+        simulation.mouseInGame.x = (simulation.mouse.x - canvas.width2) / simulation.zoom * simulation.edgeZoomOutSmooth + canvas.width2 - m.transX;
+        simulation.mouseInGame.y = (simulation.mouse.y - canvas.height2) / simulation.zoom * simulation.edgeZoomOutSmooth + canvas.height2 - m.transY;
+    },
+    //for moving camera away from player
+    setCameraPosition(x, y, zoom = 1) {
+        ctx.restore();
+        ctx.save();
+        ctx.translate(canvas.width2, canvas.height2); //center
+        ctx.scale(zoom, zoom); //zoom in once centered
+        ctx.translate(- x, - y); //center
+
+        // ctx.scale(simulation.zoom / simulation.edgeZoomOutSmooth, simulation.zoom / simulation.edgeZoomOutSmooth); //zoom in once centered
+        // ctx.translate(-canvas.width2, -canvas.height2); //translate
         //calculate in game mouse position by undoing the zoom and translations
         simulation.mouseInGame.x = (simulation.mouse.x - canvas.width2) / simulation.zoom * simulation.edgeZoomOutSmooth + canvas.width2 - m.transX;
         simulation.mouseInGame.y = (simulation.mouse.y - canvas.height2) / simulation.zoom * simulation.edgeZoomOutSmooth + canvas.height2 - m.transY;
@@ -973,7 +987,7 @@ const simulation = {
         } else {
             Composite.add(engine.world, [player])
         }
-        shuffle(level.constraint)
+        seededShuffle(level.constraint)
         level.populateLevels()
         input.endKeySensing();
         simulation.ephemera = []
@@ -1065,14 +1079,14 @@ const simulation = {
             simulation.ephemera.push({
                 name: "dmgDefBars", count: 0, do() {
                     if (!(m.cycle % 15)) { //4 times a second
-                        const defense = m.defense() //* simulation.dmgScale           //update defense bar
+                        const defense = m.defense() * simulation.dmgScale           //update defense bar
                         if (m.lastCalculatedDefense !== defense) {
                             document.getElementById("defense-bar").style.width = Math.floor(300 * m.maxHealth * (1 - defense)) + "px";
                             m.lastCalculatedDefense = defense
                         }
-                        const damage = tech.damageFromTech() //* m.dmgScale           //update damage bar
+                        const damage = tech.damageFromTech() * m.dmgScale           //update damage bar
                         if (m.lastCalculatedDamage !== damage) {
-                            document.getElementById("damage-bar").style.height = Math.floor((Math.atan(0.25 * damage - 0.25) + 0.25) * 0.53 * canvas.height) + "px";
+                            document.getElementById("damage-bar").style.height = Math.floor((Math.atan(0.25 * damage - 0.25) + 0.25) * 0.63 * canvas.height) + "px";
                             m.lastCalculatedDamage = damage
                         }
                     }
@@ -1228,7 +1242,13 @@ const simulation = {
                                 m.health *= 0.95 //remove 5%
                                 m.displayHealth();
                             }
-
+                            simulation.drawList.push({ //add dmg to draw queue
+                                x: m.pos.x,
+                                y: m.pos.y,
+                                radius: 5,
+                                color: "rgb(255, 0, 195)",
+                                time: 4
+                            });
                         }
                         if (tech.cyclicImmunity && m.immuneCycle < m.cycle + tech.cyclicImmunity) m.immuneCycle = m.cycle + tech.cyclicImmunity; //player is immune to damage for 60 cycles
 

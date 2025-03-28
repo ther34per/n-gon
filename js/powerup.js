@@ -256,6 +256,8 @@ const powerUps = {
         powerUps.endDraft(type);
     },
     showDraft() {
+        simulation.isChoosing = true; //stops p from un pausing on key down
+
         //disable clicking for 1/2 a second to prevent mistake clicks
         document.getElementById("choose-grid").style.pointerEvents = "none";
         document.body.style.cursor = "none";
@@ -264,7 +266,6 @@ const powerUps = {
             document.getElementById("choose-grid").style.pointerEvents = "auto";
             document.getElementById("choose-grid").style.transitionDuration = "0s";
         }, 400);
-        simulation.isChoosing = true; //stops p from un pausing on key down
 
         if (!simulation.paused) {
             if (tech.isNoDraftPause || level.isNoPause) {
@@ -285,13 +286,13 @@ const powerUps = {
     endDraft(type, isCanceled = false) { //type should be a gun, tech, or field
         if (isCanceled) {
             if (tech.isCancelDuplication) {
-                const value = 0.06
+                const value = 0.07
                 tech.duplication += value
                 simulation.inGameConsole(`tech.duplicationChance() <span class='color-symbol'>+=</span> ${value}`)
                 simulation.circleFlare(value);
             }
             if (tech.isCancelRerolls) {
-                for (let i = 0, len = 8 + 4 * Math.random(); i < len; i++) {
+                for (let i = 0, len = 10 + 6 * Math.random(); i < len; i++) {
                     let spawnType
                     if (Math.random() < 0.4) {
                         spawnType = "ammo"
@@ -303,7 +304,7 @@ const powerUps = {
                     powerUps.spawn(m.pos.x + 40 * (Math.random() - 0.5), m.pos.y + 40 * (Math.random() - 0.5), spawnType, false);
                 }
             }
-            if (tech.isCancelCouple) powerUps.spawnDelay("coupling", 8)
+            if (tech.isCancelCouple) powerUps.spawnDelay("coupling", 10)
             if (tech.isCancelTech && tech.cancelTechCount === 0 && type !== "entanglement") {
                 tech.cancelTechCount++
                 // powerUps.research.use('tech')
@@ -785,13 +786,13 @@ const powerUps = {
                     m.addHealth(heal);
                     if (healOutput > 0) simulation.inGameConsole(`<div class="circle-grid heal"></div> &nbsp; <span class='color-var'>m</span>.health <span class='color-symbol'>+=</span> ${(healOutput).toFixed(3)}`) // <br>${m.health.toFixed(3)}
                     if (tech.isOverHeal && overHeal > 0) { //tech quenching
-                        tech.extraMaxHealth += 0.4 * overHeal //increase max health
+                        tech.extraMaxHealth += 0.5 * overHeal //increase max health
                         m.setMaxHealth();
                         simulation.inGameConsole(`<div class="circle-grid heal"></div> &nbsp; <span class='color-var'>m</span>.maxHealth <span class='color-symbol'>+=</span> ${(0.3 * overHeal).toFixed(3)}`)
                         simulation.drawList.push({ //add dmg to draw queue
                             x: m.pos.x,
                             y: m.pos.y,
-                            radius: overHeal * 100 * simulation.healScale,
+                            radius: Math.max(3, overHeal * 100 * simulation.healScale),
                             color: "#0eb",
                             time: simulation.drawTime
                         });
@@ -861,7 +862,7 @@ const powerUps = {
                 }
             }
             if (powerUps.healGiveMaxEnergy) {
-                tech.healMaxEnergyBonus += 0.14 * tech.largerHeals * (tech.isHalfHeals ? 0.5 : 1)
+                tech.healMaxEnergyBonus += 0.15 * tech.largerHeals * (tech.isHalfHeals ? 0.5 : 1)
                 m.setMaxEnergy();
             }
         },
@@ -909,7 +910,7 @@ const powerUps = {
         }
     },
     cancelText(type) {
-        if (tech.isSuperDeterminism) {
+        if (tech.isSuperDeterminism || type === "constraint") {
             return `<div></div>`
         } else if (tech.isCancelTech && tech.cancelTechCount === 0) {
             return `<div class='cancel-card sticky' onclick='powerUps.endDraft("${type}",true)' style="width: 115px;"><span class="color-randomize">randomize</span></div>`
@@ -940,7 +941,9 @@ const powerUps = {
     },
     researchAndCancelText(type) {
         let text = `<div class='research-cancel'>`
-        if (type === "entanglement") {
+        if (type === "constraint") {
+            return
+        } else if (type === "entanglement") {
             text += `<span class='research-card entanglement flipX' style="width: 275px;" onclick='powerUps.endDraft("${type}",true)'><span style="letter-spacing: 6px;">entanglement</span></span>`
         } else if (tech.isJunkResearch && powerUps.research.currentRerollCount < 2) {
             text += `<span onclick="powerUps.research.use('${type}')" class='research-card' style="width: 275px;float: left;">` // style = "margin-left: 192px; margin-right: -192px;"
@@ -1008,6 +1011,12 @@ const powerUps = {
         return text
     },
     hideStyle: `style="height:auto; border: none; background-color: transparent;"`,
+    constraintText(choose, click) {
+        return `<div class="choose-grid-module card-background" onclick="${click}" onauxclick="${click}"${powerUps.hideStyle}>
+        <div class="card-text">
+        <div class="grid-title"><div class="circle-grid field"></div> &nbsp; ${m.fieldUpgrades[choose].name}</div>
+        ${m.fieldUpgrades[choose].description}</div></div>`
+    },
     gunText(choose, click) {
         const style = localSettings.isHideImages ? powerUps.hideStyle : `style="background-image: url('img/gun/${b.guns[choose].name}.webp');"`
         return `<div class="choose-grid-module card-background" onclick="${click}" onauxclick="${click}" ${style}>
@@ -1129,7 +1138,7 @@ const powerUps = {
                 }
                 // console.log(options.length)
                 if (options.length > 0 || !tech.isSuperDeterminism) {
-                    let totalChoices = 2 + tech.extraChoices + 3 * (m.fieldMode === 8) - level.fewerChoices
+                    let totalChoices = 2 + tech.extraChoices + (tech.isInPilot ? 1 : 3) * (m.fieldMode === 8) - level.fewerChoices
                     if (tech.isCancelTech && tech.cancelTechCount === 1) {
                         totalChoices *= 3
                         tech.cancelTechCount++
@@ -1196,7 +1205,7 @@ const powerUps = {
                 for (let i = 1; i < m.fieldUpgrades.length; i++) { //skip field emitter
                     if (i !== m.fieldMode) options.push(i);
                 }
-                let totalChoices = 2 + tech.extraChoices + 3 * (m.fieldMode === 8) - level.fewerChoices
+                let totalChoices = 2 + tech.extraChoices + (tech.isInPilot ? 1 : 3) * (m.fieldMode === 8) - level.fewerChoices
                 if (tech.isCancelTech && tech.cancelTechCount === 1) {
                     totalChoices *= 3
                     tech.cancelTechCount++
@@ -1276,7 +1285,7 @@ const powerUps = {
                     }
                 }
                 //set total choices
-                let totalChoices = 3 + tech.extraChoices + 3 * (m.fieldMode === 8) - level.fewerChoices
+                let totalChoices = 3 + tech.extraChoices + (tech.isInPilot ? 1 : 3) * (m.fieldMode === 8) - level.fewerChoices
                 if (tech.isCancelTech && tech.cancelTechCount === 1) {
                     totalChoices *= 3
                     tech.cancelTechCount++
@@ -1607,6 +1616,8 @@ const powerUps = {
                     }
                 }
             }
+            powerUps.spawn(x + 25, y - 25, "ammo", false);
+            if (simulation.difficultyMode > 5) powerUps.spawn(x - 25, y - 50, "ammo", false);
             if (tech.isAddRemoveMaxHealth) {
                 powerUps.spawn(x + 20, y, "tech", false)
                 powerUps.spawn(x - 20, y, "research", false)
@@ -1642,6 +1653,7 @@ const powerUps = {
             if (b.inventory.length === 0) {
                 powerUps.spawn(x, y, "gun", false); //first gun
             } else if (tech.totalCount === 0) { //first tech
+                powerUps.spawn(x - 22, y - 50, "ammo", false); //some ammo
                 powerUps.spawn(x, y, "tech", false);
             } else if (b.inventory.length === 1) { //second gun or extra ammo
                 if (Math.random() < 0.4) {
@@ -1749,7 +1761,6 @@ const powerUps = {
             }
         }
 
-
         if (smallIndexes.length > 2 && Math.random() < 0.66) {             // console.log("no big, at least 3 small can combine")
             for (let j = 0; j < 3; j++) {
                 for (let i = 0; i < powerUp.length; i++) {
@@ -1761,7 +1772,7 @@ const powerUps = {
                 }
             }
 
-            options = ["tech", "gun", "field"]
+            options = ["tech", "tech", "tech", "gun", "gun", "field"]
             powerUps.directSpawn(where.x, where.y, options[Math.floor(Math.random() * options.length)], false)
         } else if (bigIndexes.length > 0 && Math.random() < 0.5) { // console.log("at least 1 big can spilt")
             const index = bigIndexes[Math.floor(Math.random() * bigIndexes.length)]

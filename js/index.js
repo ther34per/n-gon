@@ -1,5 +1,14 @@
 "use strict";
 
+//list of the recent github hashes, shortened to the first 7 digits of the full hash.
+//the last element of the array is the most recent commit
+// const commitHashes = ['6472d6d', 'c8bf77d', 'eb8f4b0', 'f556371', '74f569b', 'c9f355b', '6814c10', '9402cf2', 'f8b4b6f', '82c0ea8', 'f9849d4', 'd00a94a', '3654198', '9bcf4d3', 'eecf763', 'be109bb', 'e2bf9aa', '3ea8bfd', 'c614451', '1752453', '34e05c7', '07af7a7', '2e76b5c', '1b23dec', '0b728fb', 'e6e5058', '4f87444', 'e418b93', 'b3fa1bf', '09c9e93', 'd8e978f', 'da559f4', '1d4b0c4', '4415942', '6cd2502', '8a211e8', '3d423a5', '4933ef5', '77cafe3', 'bffaeed', '99bd1c8', '8a3ac11', 'bf5f866', 'b14f2c1', 'ff613dc', '1129b9d', '3844d00', 'e9d2262', 'ce74f42', 'ad33cf6', '2d12f1d', 'c47d860', '4e6acdd', '778a2c9', '68f9269', '17f65cf', 'b5e4b0d', '38d9931', '64f2a9f', '64c81cd', '254ec00', '38ef45a', '1728b53', 'fde3a58', '6c3d97a', '951806d', '2b99e59', '3ce6bec', '773ee5c', '4c6b480', 'a1164ed', '507b060', '63bfaba', 'eabd146', '438c166', '1903b9e', '5e12cea', 'f43a5e3', '022e2fa', '20f9b79', 'fc70dfe', '5eae070', '8dacb02', '52046ca', '220a6b4', 'ebd2274', 'cea1c64', 'a47ef97', 'a8c6c0e', '9c2c9be', '8bb8222', '1fde74d', 'f1a6713', '97c5509', '1966173', '2daeae1', '1040d1f', 'c9a5ab9', '77e484c', 'b2426cd']
+// const lastShortHash = 'b2426cd'
+//Landgreen needs to update the commitHashes array with the most recent commit hash on each new upload, but the array will always be missing the current hash since it is generated with each new commit
+//write code to check the 2nd most recent hash and see if it match an element in the commitHashes array.  Use that to calculate how many commits have been made since the last update
+
+
+
 //convert text into numbers for seed
 Math.hash = s => {
     for (var i = 0, h = 9; i < s.length;) h = Math.imul(h ^ s.charCodeAt(i++), 9 ** 9);
@@ -28,11 +37,11 @@ Math.seededRandom = function (min = 0, max = 1) { // in order to work 'Math.seed
 // console.log(Math.seed)
 
 
-function shuffle(array) {
+function seededShuffle(array) {
     var currentIndex = array.length,
         temporaryValue,
         randomIndex;
-    // While there remain elements to shuffle...
+    // While there remain elements
     while (0 !== currentIndex) {
         // Pick a remaining element...
         // randomIndex = Math.floor(Math.random() * currentIndex);
@@ -497,7 +506,7 @@ const build = {
 <span style="float: right;"><strong class='color-d'>level</strong> ${((m.dmgScale)).toPrecision(4)}x</span>
 <br><strong class='color-defense'>damage taken</strong> ${(m.defense()).toPrecision(4)}x
 <span style="float: right;"><strong class='color-defense'>level</strong> ${(simulation.dmgScale).toPrecision(4)}x</span>
-<br><strong class='color-h'>health</strong> (${(m.health * 100).toFixed(0)} / ${(m.maxHealth * 100).toFixed(0)})
+<br><strong class='color-h'>health</strong> (${level.isHideHealth ? "null" : (m.health * 100).toFixed(0)} / ${(m.maxHealth * 100).toFixed(0)})
 <span style="float: right;">${powerUps.research.count} ${powerUps.orb.research()}</span>
 <br><strong class='color-f'>energy</strong> (${(m.energy * 100).toFixed(0)} / ${(m.maxEnergy * 100).toFixed(0)}) + (${(m.fieldRegen * 6000 * level.isReducedRegen).toFixed(0)}/s)
 <span style="float: right;">${tech.totalCount} ${powerUps.orb.tech()}</span>
@@ -542,7 +551,7 @@ ${simulation.difficultyMode > 4 ? `<details id="constraints-details" style="padd
 <details id = "console-log-details" style="padding: 0 8px;">
 <summary>console log</summary>
 <div class="pause-details">
-    <div class="pause-grid-module" style="background-color: rgba(255,255,255,0.3);font-size: 0.8em;">${document.getElementById("text-log").innerHTML}</div>
+    <div class="pause-grid-module" style="    background-color: #e2e9ec;font-size: 0.8em;">${document.getElementById("text-log").innerHTML}</div>
 </div>
 </details>
 </div>`
@@ -643,7 +652,7 @@ ${simulation.difficultyMode > 4 ? `<details id="constraints-details" style="padd
             }
         }
         document.getElementById("sort-input").addEventListener('keydown', pressEnterSort);
-        requestAnimationFrame(() => { document.getElementById("sort-input").focus(); });
+        // requestAnimationFrame(() => { document.getElementById("sort-input").focus(); });
     },
     sortTech(find, isExperiment = false) {
         const sortKeyword = (a, b) => {
@@ -729,6 +738,8 @@ ${simulation.difficultyMode > 4 ? `<details id="constraints-details" style="padd
                 return 0;
             });
         } else if (find === 'damage') {
+            tech.tech.sort(sortKeyword);
+        } else if (find === 'damage taken') {
             tech.tech.sort(sortKeyword);
         } else if (find === 'defense') {
             tech.tech.sort(sortKeyword);
@@ -954,8 +965,8 @@ ${simulation.difficultyMode > 4 ? `<details id="constraints-details" style="padd
         <button onclick="build.sortTech('fieldtech', true)" class='sort-button'>${powerUps.orb.fieldTech()}</button>
         <button onclick="build.sortTech('damage', true)" class='sort-button'><strong class='color-d'>damage</strong></button>
         <button onclick="build.sortTech('damage taken', true)" class='sort-button'><strong style="letter-spacing: 1px;font-weight: 100;">dmg taken</strong></button>
-        <button onclick="build.sortTech('heal')" class='sort-button'><strong class='color-h'>heal</strong></button>
-        <button onclick="build.sortTech('energy')" class='sort-button'><strong class='color-f'>energy</strong></button>
+        <button onclick="build.sortTech('heal', true)" class='sort-button'><strong class='color-h'>heal</strong></button>
+        <button onclick="build.sortTech('energy', true)" class='sort-button'><strong class='color-f'>energy</strong></button>
         <input type="search" id="sort-input" style="width: 7.5em;font-size: 0.6em;color:#000;" placeholder="sort by" />
         <button onclick="build.sortTech('input', true)" class='sort-button' style="border-radius: 0em;border: 1.5px #000 solid;font-size: 0.6em;" value="damage">sort</button>
     </div>
@@ -1174,6 +1185,7 @@ function openExperimentMenu() {
     document.body.style.overflowX = "hidden";
     document.getElementById("info").style.display = 'none'
     build.reset();
+
 }
 
 //record settings so they can be reproduced in the experimental menu
@@ -1203,6 +1215,8 @@ const input = {
     left: false,
     right: false,
     isPauseKeyReady: true,
+    // isMouseInside: true,
+    // lastDown: null,
     key: {
         fire: "KeyF",
         field: "Space",
@@ -1377,6 +1391,7 @@ window.addEventListener("keyup", function (event) {
 });
 
 window.addEventListener("keydown", function (event) {
+    // input.lastDown = event.code
     // console.log(event.code)
     switch (event.code) {
         case input.key.right:
@@ -1416,11 +1431,13 @@ window.addEventListener("keydown", function (event) {
                     build.pauseGrid()
 
                 } else if (simulation.paused) {
-                    build.unPauseGrid()
-                    simulation.paused = false;
-                    // level.levelAnnounce();
-                    document.body.style.cursor = "none";
-                    requestAnimationFrame(cycle);
+                    if (document.activeElement !== document.getElementById('sort-input')) {
+                        build.unPauseGrid()
+                        simulation.paused = false;
+                        // level.levelAnnounce();
+                        document.body.style.cursor = "none";
+                        requestAnimationFrame(cycle);
+                    }
                 } else {  //if (!tech.isNoDraftPause)
                     simulation.paused = true;
                     build.pauseGrid()
@@ -1542,7 +1559,7 @@ window.addEventListener("keydown", function (event) {
             }
             break
     }
-    if (b.inventory.length > 1 && !simulation.testing && !tech.isGunCycle) {
+    if (b.inventory.length > 1 && !simulation.testing && !(tech.isGunChoice || tech.isGunCycle)) {
         switch (event.code) {
             case "Digit1":
                 simulation.switchToGunInInventory(0);
@@ -1729,11 +1746,12 @@ document.body.addEventListener("mouseenter", (e) => { //prevents mouse getting s
         input.fire = false;
     }
 
-    if (e.button === 3) {
-        input.field = true;
-    } else {
-        input.field = false;
-    }
+    // if (e.button === 3) {
+    //     input.field = true;
+    // } else {
+    //     input.field = false;
+    // }
+    // input.isMouseInside = true
 });
 document.body.addEventListener("mouseleave", (e) => { //prevents mouse getting stuck when leaving the window
     if (e.button === 1) {
@@ -1742,11 +1760,12 @@ document.body.addEventListener("mouseleave", (e) => { //prevents mouse getting s
         input.fire = false;
     }
 
-    if (e.button === 3) {
-        input.field = true;
-    } else {
-        input.field = false;
-    }
+    // if (e.button === 3) {
+    //     input.field = true;
+    // } else {
+    //     input.field = false;
+    // }
+    // input.isMouseInside = false
 });
 
 document.body.addEventListener("wheel", (e) => {
@@ -1943,13 +1962,41 @@ document.getElementById("updates").addEventListener("toggle", function () {
         xhr.open("GET", path, true);
         xhr.send();
     }
+
+    // fetch(`https://api.github.com/repos/landgreen/n-gon/commits?per_page=100`)
+    //     .then(response => {
+    //         if (!response.ok) {
+    //             throw new Error(`GitHub API responded with status ${response.status}`);
+    //         }
+    //         return response.json();
+    //     })
+    //     .then(commits => {
+    //         // console.log(commits.sha)
+    //         const array = []
+    //         commits.forEach(commitData => {
+    //             const shortHash = commitData.sha.substr(0, 7);
+    //             array.push(shortHash)
+    //         });
+    //         console.log(array)
+    //     })
+    //     .catch(error => {
+    //         console.error('Error fetching commits:', error);
+    //     });
+
+
+
     let text = `<pre><strong>n-gon</strong>: <a href="https://github.com/landgreen/n-gon/blob/master/todo.txt">todo list</a> and complete <a href="https://github.com/landgreen/n-gon/commits/master">change-log</a><hr>`
     document.getElementById("updates-div").innerHTML = text
 
     ///  https://api.github.com/repos/landgreen/n-gon/stats/commit_activity
     loadJSON('https://api.github.com/repos/landgreen/n-gon/commits',
         function (data) {
-            // console.log(data[0].sha) //unique code for most recent commit
+            // console.log(data[0].sha, lastShortHash)
+            // if (data[0].sha.substr(0, 7) === lastShortHash) {
+            //     text += "<br><em>https://github.com/landgreen/n-gon/</em>: hash matches latest version<hr>"
+            // } else {
+            //     text += "<br><em>https://github.com/landgreen/n-gon/</em>: hash does <strong>not</strong> match latest version<br><hr>"
+            // }
             for (let i = 0, len = 20; i < len; i++) {
                 text += "<strong>" + data[i].commit.author.date.substr(0, 10) + "</strong> - "; //+ "<br>"
                 text += data[i].commit.message
